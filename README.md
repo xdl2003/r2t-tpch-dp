@@ -28,6 +28,10 @@ The default data path is:
 BDT_IP_Differential-privacy/data
 ```
 
+The raw TPC-H `.tbl` files are not included in the public repository.
+Place generated TPC-H files under the default path above, or pass
+`--data-dir /path/to/tpch/data`.
+
 ## Outputs
 
 Results are saved under `results/`:
