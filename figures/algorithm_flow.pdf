@@ -1,0 +1,52 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 720 420] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1273 >>
+stream
+BT /F1 18 Tf 0 0 0 rg 250.00 380.00 Td (R2T Processing Flow) Tj ET
+0.93 0.96 1.0 rg 0 0 0 RG 1 w 40.00 260.00 120.00 60.00 re B
+BT /F1 12 Tf 0 0 0 rg 58.00 296.00 Td (TPC-H .tbl) Tj ET
+BT /F1 12 Tf 0 0 0 rg 58.00 280.00 Td (files) Tj ET
+0.93 0.96 1.0 rg 0 0 0 RG 1 w 200.00 260.00 120.00 60.00 re B
+BT /F1 12 Tf 0 0 0 rg 218.00 296.00 Td (SQLite) Tj ET
+BT /F1 12 Tf 0 0 0 rg 218.00 280.00 Td (case SQL) Tj ET
+0.93 0.96 1.0 rg 0 0 0 RG 1 w 360.00 260.00 130.00 60.00 re B
+BT /F1 12 Tf 0 0 0 rg 378.00 296.00 Td (Customer) Tj ET
+BT /F1 12 Tf 0 0 0 rg 378.00 280.00 Td (contributions) Tj ET
+0.93 0.96 1.0 rg 0 0 0 RG 1 w 540.00 260.00 130.00 60.00 re B
+BT /F1 12 Tf 0 0 0 rg 558.00 296.00 Td (R2T tau) Tj ET
+BT /F1 12 Tf 0 0 0 rg 558.00 280.00 Td (race) Tj ET
+0.93 0.96 1.0 rg 0 0 0 RG 1 w 280.00 120.00 160.00 60.00 re B
+BT /F1 12 Tf 0 0 0 rg 298.00 156.00 Td (Saved JSON/CSV) Tj ET
+BT /F1 12 Tf 0 0 0 rg 298.00 140.00 Td (results) Tj ET
+0 0 0 RG 1.5 w 160.00 290.00 m 200.00 290.00 l S
+0 0 0 RG 1.5 w 320.00 290.00 m 360.00 290.00 l S
+0 0 0 RG 1.5 w 490.00 290.00 m 540.00 290.00 l S
+0 0 0 RG 1.5 w 605.00 260.00 m 440.00 180.00 l S
+0 0 0 RG 1.5 w 360.00 180.00 m 260.00 260.00 l S
+BT /F1 11 Tf 0 0 0 rg 235.00 225.00 Td (Q3 and Q5 are implemented as separate scripts) Tj ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+1636
+%%EOF

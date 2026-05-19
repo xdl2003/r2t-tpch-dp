@@ -1,0 +1,23 @@
+{
+  "case": "case_q5_asia_revenue",
+  "params": {
+    "epsilon": 0.8,
+    "beta": 0.1,
+    "gsq": 10000000.0,
+    "seed": 1,
+    "sample_rows": null,
+    "data_dir": "/home/xdl/workspace/class/ip/BDT_IP_Differential-privacy/data"
+  },
+  "true_total": 30276617.6762,
+  "private_entities": 655,
+  "max_contribution": 210018.2632,
+  "q0_value": 0.0,
+  "q0_selected": false,
+  "r2t_output": 14653924.696829323,
+  "selected": {
+    "tau": 65536.0,
+    "truncated": 26148964.0808,
+    "noise_scale": 1904926.4467322088,
+    "noisy_score": 14653924.696829323
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "case": "case_q3_customer_revenue",
+  "params": {
+    "epsilon": 0.8,
+    "beta": 0.1,
+    "gsq": 10000000.0,
+    "seed": 1,
+    "sample_rows": null,
+    "data_dir": "/home/xdl/workspace/class/ip/BDT_IP_Differential-privacy/data"
+  },
+  "true_total": 114904912.5255,
+  "private_entities": 904,
+  "max_contribution": 661967.2212,
+  "q0_value": 0.0,
+  "q0_selected": false,
+  "r2t_output": 63926157.02201174,
+  "selected": {
+    "tau": 131072.0,
+    "truncated": 81707181.0415,
+    "noise_scale": 3809852.8934644177,
+    "noisy_score": 63926157.02201174
+  }
+}
