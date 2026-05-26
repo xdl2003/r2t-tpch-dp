@@ -91,63 +91,57 @@ Semester: \underline{2025-26 Spring}
 
 \section{Background}
 
-Differential privacy provides a formal way to release query answers while
-limiting how much one private entity can affect the output. In a single
-flat table, the sensitivity of a sum or count query is usually easy to
-bound. In a relational database, however, one entity can be connected to
-many secondary tuples through foreign keys. For example, in TPC-H one
-customer may have many orders, and each order may have many lineitems.
-If customer privacy is the target, removing one customer requires removing
-all referencing orders and lineitems, so a join query can change by a
-large amount.
+This project started from a practical question: if the private unit is a
+customer, how much can one customer change a join query on TPC-H?  For a
+single table this kind of sensitivity bound is usually direct.  For
+TPC-H it is less direct, because a customer can own many orders, and each
+order can have several lineitems.  Removing one customer therefore also
+removes the tuples that reference that customer.
 
 The R2T paper, \textit{R2T: Instance-optimal Truncation for
-Differentially Private Query Evaluation with Foreign Keys}, proposes a
-Race-to-the-Top mechanism for this setting. The core idea is to use a
-truncation threshold $\tau$ to limit the contribution of one private
-entity, but to choose this threshold in a differentially private way.
-Small thresholds produce low noise but high truncation bias. Large
-thresholds preserve more of the true answer but require larger privacy
-noise. R2T evaluates a geometric sequence of thresholds and returns the
-best noisy, penalized candidate.
+Differentially Private Query Evaluation with Foreign Keys}, addresses
+this problem by truncating private-unit contribution.  A small threshold
+$\tau$ gives smaller noise but loses more of the query answer.  A large
+$\tau$ keeps more revenue but also needs larger noise.  R2T tries powers
+of two for $\tau$, adds noise and a penalty to each candidate, and then
+returns the winner of this private race.
 
-This project applies the R2T idea to the TPC-H benchmark. The goal is not
-to build a general-purpose differentially private SQL engine. Instead,
-the project implements two concrete TPC-H revenue cases as Python scripts,
-records the intermediate R2T candidates, validates important invariants,
-and produces reproducible output files.
+I did not try to build a full private SQL engine.  That would require a
+much larger parser and query-rewriting system.  Instead, I selected two
+TPC-H revenue queries where the private unit can be handled cleanly at
+the customer level.  The code saves the intermediate candidate values, so
+the result can be checked instead of only reported as a final number.
 
 \section{Project Scope and Objectives}
 
-The project has four main objectives:
+The final scope was kept narrow on purpose:
 
 \begin{enumerate}
-    \item Understand the R2T algorithm and how it applies to relational
-    schemas with foreign-key relationships.
-    \item Select two TPC-H cases that are representative but still small
-    enough to implement directly.
-    \item Implement the two cases as separate Python programs under a
-    \texttt{code/} directory.
-    \item Save results and provide a validation path so the output can be
-    checked and reproduced.
+    \item Use \texttt{Customer} as the private relation in both cases.
+    \item Implement two concrete TPC-H-style revenue queries rather than
+    a general query framework.
+    \item Apply R2T to per-customer revenue contributions.
+    \item Save enough intermediate output to make the experiment
+    reproducible.
+    \item Add a small validation script for the properties that are easy
+    to check from the generated candidate files.
 \end{enumerate}
 
-Both implemented cases use \texttt{Customer} as the private relation.
 The protected unit is one customer together with the orders and lineitems
-that reference that customer. The implemented queries are adapted from
-TPC-H Query 3 and Query 5. They keep the important join structure and
-selection predicates from the benchmark, but the final output is a scalar
-revenue aggregate suitable for a single R2T release.
+that reference that customer.  The two implemented queries follow the
+join and filter ideas of TPC-H Query 3 and Query 5, but they output one
+scalar revenue value instead of the original benchmark outputs.  This
+keeps the project focused on the R2T truncation mechanism.
 
 \section{TPC-H Cases Used in the Project}
 
-The first case is a Q3-style customer revenue query. It joins
+The first case is a Q3-style customer revenue query.  It joins
 \texttt{Customer}, \texttt{Orders}, and \texttt{Lineitem}. The query keeps
 customers in the \texttt{BUILDING} market segment, orders before
 1995-03-15, and lineitems shipped after 1995-03-15. The revenue term is
 \texttt{L\_EXTENDEDPRICE * (1 - L\_DISCOUNT)}.
 
-The second case is a Q5-style ASIA revenue query. It joins
+The second case is a Q5-style ASIA revenue query.  It joins
 \texttt{Customer}, \texttt{Orders}, \texttt{Lineitem}, \texttt{Supplier},
 \texttt{Nation}, and \texttt{Region}. It keeps orders in 1994, restricts
 the region to ASIA, and requires the supplier and customer to come from
@@ -159,10 +153,9 @@ the same nation.
   \caption{Foreign key relationship and TPC-H relations used in the project}
 \end{figure}
 
-The local TPC-H data files are stored under the project-owned
-\texttt{data/} directory. The scripts use this directory by default, while
-also allowing a custom generated TPC-H data directory through the command
-line.
+The local TPC-H data files are stored under \texttt{data/}.  The scripts
+use that directory by default, and \texttt{--data-dir} can be used when a
+different generated TPC-H dataset is needed.
 
 % =============================================================
 \chapter{Algorithm Design}
@@ -175,41 +168,38 @@ line.
   \caption{Algorithm flow}
 \end{figure}
 
-The implemented pipeline follows the structure shown in Figure 2.1. For
-each case, the program loads the required TPC-H \texttt{.tbl} files into
-an in-memory SQLite database. It then executes a case-specific SQL query
-that computes the revenue contribution for each customer. After this
-preprocessing step, the R2T mechanism is applied to the list of
-customer-level contributions.
+The pipeline in Figure 2.1 is the one used in the experiment.  Each case
+loads only the tables it needs into an in-memory SQLite database.  The SQL
+query then returns one row per contributing customer.  After that point,
+the database part is finished; R2T only sees a list of customer revenue
+values.
 
 Let $x_i$ denote the contribution of customer $i$ to the selected query.
 For a threshold $\tau$, the truncated query answer is
 \[
 Q(I,\tau)=\sum_i \min(x_i,\tau).
 \]
-This form is valid for the two selected cases because they are
-self-join-free and the privacy unit is the customer. In the general R2T
-paper, a linear program is used for more complex queries, especially
-self-joins or projections. For these two cases, the LP optimum reduces to
-the same per-customer truncation form, so an explicit LP solver is not
-needed.
+This is the main simplification in the project.  The two selected cases
+are self-join-free, and every released value is first reduced to a
+customer contribution.  Under this setup, capping each customer's revenue
+at $\tau$ gives the truncation function needed by R2T.  The full paper
+uses LP formulations for more complicated settings, but those extra
+pieces are not needed for these two selected queries.
 
 \section{Algorithm Detail}
 
-The project implements the following steps:
+The implementation follows these steps:
 
 \begin{enumerate}
-    \item \textbf{Source Loading}: Read selected TPC-H \texttt{.tbl} files
-    using Python's standard \texttt{csv} module and insert them into an
-    in-memory SQLite database.
+    \item \textbf{Source Loading}: Read selected TPC-H \texttt{.tbl}
+    files with Python's \texttt{csv} module and insert them into SQLite.
 
-    \item \textbf{Case Query Execution}: Execute one fixed SQL query per
-    case. The output is grouped by customer key and contains one revenue
-    value for each contributing customer.
+    \item \textbf{Case Query Execution}: Run one fixed SQL query per
+    case.  The output is grouped by customer key.
 
-    \item \textbf{Contribution Construction}: Convert the SQL output into
-    a list of pairs \texttt{(customer\_key, contribution)}. The sum of all
-    contributions is the non-private SQL answer.
+    \item \textbf{Contribution Construction}: Convert the SQL rows into
+    \texttt{(customer\_key, contribution)} pairs.  Their sum is the
+    non-private SQL answer.
 
     \item \textbf{Threshold Enumeration}: Generate candidate thresholds
     $\tau = 2,4,8,\ldots,2^{\lfloor \log_2(GS_Q)\rfloor}$. The default
@@ -235,22 +225,19 @@ The project implements the following steps:
     \]
     where $Q(I,0)=0$ because the revenue values are non-negative.
 
-    \item \textbf{Result Saving}: Save the summary output as JSON and all
-    candidate thresholds as CSV files under \texttt{results/}.
+    \item \textbf{Result Saving}: Save the summary, all candidate
+    thresholds, and the customer contribution list under \texttt{results/}.
 \end{enumerate}
 
 \section{Implementation Details}
 
-The implementation is divided into one shared utility module and two
-case-specific scripts. The shared module \texttt{code/common.py} is
-responsible for all steps that are common to both cases. The function
-\texttt{load\_tables()} reads TPC-H \texttt{.tbl} files using the standard
-Python \texttt{csv} module. Since TPC-H rows are separated by the
-\texttt{|} character and end with a trailing separator, the loader inserts
-\texttt{row[:-1]} into SQLite so that the final empty field is removed.
-Each table is created with explicit TPC-H column names, which makes the
-SQL queries readable and avoids relying on column positions later in the
-program.
+The code is split into a shared module and two case scripts.
+\texttt{code/common.py} contains the loader, the R2T loop, printing, and
+file output.  The loader reads the TPC-H \texttt{.tbl} files directly
+instead of using a dataframe library.  TPC-H rows end with a trailing
+\texttt{|}, so the loader stores \texttt{row[:-1]} in SQLite.  I used
+explicit column names when creating each table, because it makes the SQL
+queries easier to read.
 
 After the tables are loaded, each case script creates SQLite indexes on
 the main join keys. For the Q3-style case, the indexes are on
@@ -260,12 +247,10 @@ Q5-style case, extra indexes are created on
 indexes do not change the query result; they only make the full-data
 experiment faster.
 
-The function \texttt{customer\_contributions()} executes the SQL query and
-returns a list of \texttt{(customer\_key, revenue)} pairs. This list is
-the bridge between SQL processing and R2T processing. The non-private SQL
-answer is simply the sum of these customer revenues. The private unit is
-a customer, so the contribution list is also the unit on which truncation
-is applied.
+The function \texttt{customer\_contributions()} is the boundary between
+the SQL part and the R2T part.  It returns
+\texttt{(customer\_key, revenue)} pairs.  Since the private unit is a
+customer, this is also the right level at which to apply truncation.
 
 The function \texttt{r2t\_from\_contributions()} implements the actual
 R2T loop. It first computes \texttt{log2(GS\_Q)}, then enumerates powers
@@ -293,12 +278,13 @@ final output applies the $Q(I,0)$ lower bound:
 r2t_output = max(best["noisy_score"], 0.0)
 \end{lstlisting}
 
-Finally, \texttt{save\_result()} writes two output files. The JSON file
-stores the selected threshold, final R2T output, true SQL total, maximum
-customer contribution, and parameters. The CSV file stores all candidate
-thresholds, including the truncated answer, noise scale, and noisy score.
-This makes the final result reproducible and inspectable instead of only
-printing a terminal message.
+Finally, \texttt{save\_result()} writes three output files.  The JSON
+summary stores the selected threshold, final R2T output, true SQL total,
+maximum customer contribution, and parameters.  One CSV file stores all
+candidate thresholds, including the truncated answer, noise scale, and
+noisy score.  The other CSV file stores the per-customer contributions.
+This was useful for checking the result later and for drawing the
+contribution concentration figure.
 
 \section{Q3-Style SQL Query}
 
@@ -318,10 +304,9 @@ GROUP BY c.C_CUSTKEY
 HAVING revenue > 0;
 \end{lstlisting}
 
-This query is adapted from TPC-H Query 3. The original TPC-H Q3 reports
-the top revenue orders. In this project, the same filtering and join path
-are used, but the result is aggregated by customer because R2T protects
-customer-level contribution.
+This query follows the filtering idea of TPC-H Query 3, but I aggregate
+by customer instead of reporting individual orders.  That change is
+needed because the privacy unit in this project is the customer.
 
 \section{Q5-Style SQL Query}
 
@@ -348,15 +333,15 @@ GROUP BY c.C_CUSTKEY
 HAVING revenue > 0;
 \end{lstlisting}
 
-This query is adapted from TPC-H Query 5. The original TPC-H Q5 groups by
-nation. This project keeps the ASIA-region and same-nation join logic but
-aggregates revenue by customer first, which is required to apply the
-customer-level R2T truncation.
+This query follows the ASIA-region and same-nation condition from TPC-H
+Query 5.  The original query groups by nation.  Here the grouping is by
+customer, again so that the contribution of one private customer can be
+capped by R2T.
 
 \section{Implementation Structure}
 
-The implementation is intentionally simple and direct. There is no query
-parser and no general SQL rewriting module. The files are:
+The implementation is intentionally direct.  There is no query parser and
+no general SQL rewriting module.  The files are:
 
 \begin{itemize}
     \item \texttt{code/common.py}: shared table loading, threshold
@@ -369,10 +354,9 @@ parser and no general SQL rewriting module. The files are:
     from saved CSV/JSON results and saved contribution files.
 \end{itemize}
 
-The submitted implementation keeps the SQL case construction, R2T
-threshold evaluation, validation checks, and figure generation inside
-project-owned Python scripts. The runtime path does not require
-\texttt{pandas}, \texttt{numpy}, or \texttt{pulp}.
+The runtime path uses only the Python standard library and SQLite.  I
+kept it this way so the experiment can run in a plain Python environment
+without setting up extra numerical packages.
 
 % =============================================================
 \chapter{Experiment Design and Outcome}
@@ -418,22 +402,20 @@ project-owned Python scripts. The runtime path does not require
   \caption{Customer contribution concentration for the two implemented cases}
 \end{figure}
 
-The experiment runs both implemented cases on the available TPC-H scale-1
-data. For each case, the program outputs the true SQL total before
-privacy, the maximum customer contribution, the selected threshold
-$\tau$, the truncated value at that threshold, and the final R2T noisy
-output. The candidate CSV files record every threshold evaluated by the
-R2T race. The contribution CSV files record each customer's pre-truncation
-revenue, which is used to plot the concentration of the private-unit
-contributions.
+The experiment runs both cases on the local TPC-H scale-1 data.  For each
+case I record the true SQL total before privacy, the maximum customer
+contribution, the selected threshold $\tau$, the truncated value at that
+threshold, and the final noisy R2T output.  The candidate CSV files make
+the threshold race visible, while the contribution CSV files show how
+concentrated the customer revenues are.
 
 \section{Input Design}
 
 \begin{enumerate}
-    \item Use the TPC-H \texttt{.tbl} files already available in
-    \texttt{BDT\_IP\_Differential-privacy/data}. The tables used are
-    \texttt{customer.tbl}, \texttt{orders.tbl}, \texttt{lineitem.tbl},
-    \texttt{supplier.tbl}, \texttt{nation.tbl}, and \texttt{region.tbl}.
+    \item Use the TPC-H \texttt{.tbl} files stored in \texttt{data/}.
+    The tables used are \texttt{customer.tbl}, \texttt{orders.tbl},
+    \texttt{lineitem.tbl}, \texttt{supplier.tbl}, \texttt{nation.tbl},
+    and \texttt{region.tbl}.
 
     \item Load only the tables required by each case. The Q3-style case
     loads \texttt{Customer}, \texttt{Orders}, and \texttt{Lineitem}. The
@@ -441,9 +423,8 @@ contributions.
     \texttt{Region}.
 
     \item Store tables in SQLite memory tables with explicit column names
-    based on the TPC-H schema. This allows the SQL query to be written
-    clearly and keeps the project independent from external database
-    services.
+    based on the TPC-H schema.  This keeps the SQL readable and avoids an
+    external database service.
 
     \item Create indexes on the main join keys, such as
     \texttt{O\_CUSTKEY}, \texttt{L\_ORDERKEY}, and
@@ -463,8 +444,9 @@ The project includes a validation script:
 python3 code/validate_cases.py
 \end{lstlisting}
 
-The validation checks are not a replacement for a formal proof, but they
-verify important implementation properties:
+The validation script is not a formal DP proof.  Its purpose is more
+practical: rerun the two cases and catch mistakes in the truncation
+values or saved candidate rows.  It checks:
 
 \begin{enumerate}
     \item Each case produces at least one contributing customer.
@@ -476,12 +458,12 @@ verify important implementation properties:
     $\tau \times$ the number of contributing customers.
 \end{enumerate}
 
-These checks passed for both implemented cases. This gives confidence
-that the implementation follows the intended per-customer truncation
-logic and that the candidate files are internally consistent.
+These checks passed for both implemented cases.  This is important
+because the R2T mechanism relies on the truncated value being a stable
+underestimate of the true answer.
 
 More specifically, the validation script reruns both cases on a smaller
-default sample and checks the following invariants inside
+default sample and checks these invariants inside
 \texttt{validate\_result()}:
 
 \begin{lstlisting}[language=Python]
@@ -499,16 +481,14 @@ for row in result["rows"]:
     previous = truncated
 \end{lstlisting}
 
-The first three assertions check that the SQL case and R2T selection
-produce a meaningful result. The monotonicity check verifies the expected
-mathematical property of $\sum_i \min(x_i,\tau)$: increasing $\tau$ cannot
-decrease the truncated answer. The upper-bound check
-\texttt{truncated <= true\_total} verifies that truncation never creates
-extra revenue. The final bound
-\texttt{truncated <= tau * private\_entities} verifies the privacy-side
-constraint that each customer contributes at most $\tau$ after
-truncation. When the validation script was executed, both cases returned
-\texttt{ok}, confirming that these implementation-level checks passed.
+The first three assertions check that the SQL query produced a usable
+case and that R2T selected a positive threshold.  The monotonicity check
+matches the formula $\sum_i \min(x_i,\tau)$: increasing $\tau$ cannot
+decrease the truncated answer.  The upper-bound check confirms that
+truncation never creates extra revenue.  The last bound checks that the
+total capped contribution cannot exceed
+$\tau \times$ the number of contributing customers.  When the script was
+run, both cases returned \texttt{ok}.
 
 \section{Running Commands}
 
@@ -544,43 +524,41 @@ R2T noisy output & 63,926,157.02 & 14,653,924.70 \\ \hline
 \caption{Full-data experimental results with seed 1}
 \end{table}
 
-For the Q3-style case, the true SQL total is about 114.90 million. The
-largest individual customer contribution is about 0.66 million. R2T
-selects $\tau=131{,}072$, which gives a truncated answer of about 81.71
-million before noise and penalty. Larger thresholds preserve more of the
-true answer, but the penalty and noise scale also increase. The selected
-threshold is therefore smaller than the threshold that fully recovers the
-true answer.
+For the Q3-style case, the true SQL total is about 114.90 million.  The
+largest customer contributes about 0.66 million.  R2T selects
+$\tau=131{,}072$, so the selected truncated answer is about 81.71
+million before noise and penalty.  A larger threshold would recover more
+of the SQL answer, but it would also increase the penalty and the noise
+scale.  This is why the selected threshold is below the value needed to
+recover the full total.
 
-For the Q5-style case, the true SQL total is about 30.28 million. The
-largest customer contribution is about 0.21 million. R2T selects
-$\tau=65{,}536$, producing a truncated value of about 26.15 million. This
-case has fewer contributing customers and a smaller revenue scale than
-the Q3-style case, so the selected threshold and noise scale are also
-smaller.
+For the Q5-style case, the true SQL total is about 30.28 million and the
+largest customer contribution is about 0.21 million.  The selected
+threshold is $\tau=65{,}536$, with a truncated value of about 26.15
+million.  Compared with Q3, this case has fewer contributing customers
+and a smaller revenue scale, so the selected threshold and noise scale
+are also lower.
 
 % =============================================================
 \chapter{Conclusion}
 
 \section{Conclusion}
 
-This project successfully applied the R2T truncation mechanism to two
-TPC-H revenue queries. The implementation protects customer-level
-contribution, computes per-customer revenue, evaluates R2T threshold
-candidates, adds calibrated Laplace noise and penalty terms, and saves
-all outputs for later inspection.
+The project implements R2T for two concrete TPC-H revenue queries with
+customer-level privacy.  The important part is the reduction from a join
+query to per-customer revenue contributions.  After that reduction, the
+R2T threshold race can be implemented directly with
+$\sum_i \min(x_i,\tau)$.
 
-The main result is that R2T selects intermediate thresholds rather than
-the largest possible threshold. This behavior matches the intuition of
-the algorithm: increasing $\tau$ reduces truncation bias but increases
-noise and penalty. The final selected threshold balances these two
-effects.
+The experiment also shows the expected trade-off.  Larger thresholds keep
+more of the true answer, but they increase both the penalty term and the
+Laplace noise scale.  In both cases, R2T chooses an intermediate
+threshold instead of the largest possible threshold.
 
-The project is intentionally limited to two concrete cases. It does not
-try to support arbitrary SQL, self-joins, or projection-heavy SPJA
-queries. However, it demonstrates the central R2T workflow clearly on
-real TPC-H data and provides a reproducible code path, saved result files,
-and generated figures.
+The main limitation is that this is not a general private SQL engine.  It
+does not handle arbitrary SQL, self-joins, or projection-heavy SPJA
+queries.  Within the two selected cases, however, the implementation gives
+a reproducible path from TPC-H tables to saved R2T outputs and figures.
 
 % =============================================================
 \appendix
