@@ -529,30 +529,6 @@ case has fewer contributing customers and a smaller revenue scale than
 the Q3-style case, so the selected threshold and noise scale are also
 smaller.
 
-\section{Comparison with the Reference Project}
-
-The reference project \texttt{BDT\_IP\_Differential-privacy} contains a
-Jupyter notebook. It loads TPC-H data with \texttt{pandas}, creates an
-in-memory SQLite database, runs one Supplier-Lineitem-Orders-Customer
-revenue join, and solves a linear program with PuLP for each threshold.
-It also generates several plots.
-
-This project does similar high-level R2T work but is not the same
-implementation. The differences are:
-
-\begin{enumerate}
-    \item It implements two TPC-H cases instead of one notebook demo.
-    \item It uses standalone Python scripts instead of a Jupyter notebook.
-    \item It avoids external Python packages and uses only the standard
-    library.
-    \item It saves JSON and CSV outputs for reproducibility.
-    \item It uses the closed-form per-customer truncation that is
-    equivalent to the LP optimum for these selected self-join-free cases.
-\end{enumerate}
-
-Therefore, the project follows the same R2T algorithmic idea as the
-reference project but does not copy the reference implementation.
-
 % =============================================================
 \chapter{Conclusion}
 
