@@ -61,6 +61,7 @@ def main() -> None:
             "sample_rows": args.sample_rows,
             "data_dir": str(args.data_dir),
         },
+        contributions,
     )
 
 

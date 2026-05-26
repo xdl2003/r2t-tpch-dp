@@ -1,0 +1,66 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 720 420] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 2043 >>
+stream
+BT /F1 16 Tf 0 0 0 rg 185.00 385.00 Td (Selected Threshold Output Comparison) Tj ET
+0 0 0 RG 1 w 90.00 80.00 m 90.00 350.00 l S
+0 0 0 RG 1 w 90.00 80.00 m 630.00 80.00 l S
+0 0 0 RG 1 w 86.00 80.00 m 90.00 80.00 l S
+BT /F1 8 Tf 0 0 0 rg 25.00 76.00 Td (0) Tj ET
+0 0 0 RG 1 w 86.00 134.00 m 90.00 134.00 l S
+BT /F1 8 Tf 0 0 0 rg 25.00 130.00 Td (26) Tj ET
+0 0 0 RG 1 w 86.00 188.00 m 90.00 188.00 l S
+BT /F1 8 Tf 0 0 0 rg 25.00 184.00 Td (53) Tj ET
+0 0 0 RG 1 w 86.00 242.00 m 90.00 242.00 l S
+BT /F1 8 Tf 0 0 0 rg 25.00 238.00 Td (79) Tj ET
+0 0 0 RG 1 w 86.00 296.00 m 90.00 296.00 l S
+BT /F1 8 Tf 0 0 0 rg 25.00 292.00 Td (106) Tj ET
+0 0 0 RG 1 w 86.00 350.00 m 90.00 350.00 l S
+BT /F1 8 Tf 0 0 0 rg 25.00 346.00 Td (132) Tj ET
+0.0 0.25 0.75 rg 0.0 0.25 0.75 RG 0.5 w 195.00 80.00 42.00 234.78 re B
+BT /F1 8 Tf 0 0 0 rg 193.00 322.78 Td (114.9) Tj ET
+0.0 0.55 0.15 rg 0.0 0.55 0.15 RG 0.5 w 247.00 80.00 42.00 166.95 re B
+BT /F1 8 Tf 0 0 0 rg 245.00 254.95 Td (81.7) Tj ET
+0.75 0.15 0.1 rg 0.75 0.15 0.1 RG 0.5 w 299.00 80.00 42.00 130.62 re B
+BT /F1 8 Tf 0 0 0 rg 297.00 218.62 Td (63.9) Tj ET
+BT /F1 10 Tf 0 0 0 rg 215.00 55.00 Td (Q3-style) Tj ET
+0.0 0.25 0.75 rg 0.0 0.25 0.75 RG 0.5 w 405.00 80.00 42.00 61.86 re B
+BT /F1 8 Tf 0 0 0 rg 403.00 149.86 Td (30.3) Tj ET
+0.0 0.55 0.15 rg 0.0 0.55 0.15 RG 0.5 w 457.00 80.00 42.00 53.43 re B
+BT /F1 8 Tf 0 0 0 rg 455.00 141.43 Td (26.1) Tj ET
+0.75 0.15 0.1 rg 0.75 0.15 0.1 RG 0.5 w 509.00 80.00 42.00 29.94 re B
+BT /F1 8 Tf 0 0 0 rg 507.00 117.94 Td (14.7) Tj ET
+BT /F1 10 Tf 0 0 0 rg 425.00 55.00 Td (Q5-style) Tj ET
+0.0 0.25 0.75 rg 0.0 0.25 0.75 RG 0.5 w 430.00 350.00 12.00 8.00 re B
+BT /F1 9 Tf 0.0 0.25 0.75 rg 448.00 349.00 Td (true SQL total) Tj ET
+0.0 0.55 0.15 rg 0.0 0.55 0.15 RG 0.5 w 430.00 332.00 12.00 8.00 re B
+BT /F1 9 Tf 0.0 0.55 0.15 rg 448.00 331.00 Td (truncated at tau*) Tj ET
+0.75 0.15 0.1 rg 0.75 0.15 0.1 RG 0.5 w 430.00 314.00 12.00 8.00 re B
+BT /F1 9 Tf 0.75 0.15 0.1 rg 448.00 313.00 Td (R2T noisy output) Tj ET
+BT /F1 10 Tf 0 0 0 rg 15.00 355.00 Td (million) Tj ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+2406
+%%EOF

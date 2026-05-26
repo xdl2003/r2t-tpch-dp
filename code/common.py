@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DATA_DIR = ROOT / "BDT_IP_Differential-privacy" / "data"
+DEFAULT_DATA_DIR = ROOT / "data"
 DEFAULT_OUTPUT_DIR = ROOT / "results"
 
 
@@ -203,10 +203,34 @@ def print_summary(case_name: str, result) -> None:
         )
 
 
-def save_result(case_slug: str, output_dir: Path, result, params) -> None:
+def contribution_quantiles(contributions):
+    values = sorted(value for _, value in contributions)
+    if not values:
+        return {}
+
+    def percentile(q):
+        position = (len(values) - 1) * q
+        lower = math.floor(position)
+        upper = math.ceil(position)
+        if lower == upper:
+            return values[int(position)]
+        weight = position - lower
+        return values[lower] * (1.0 - weight) + values[upper] * weight
+
+    return {
+        "p50": percentile(0.50),
+        "p75": percentile(0.75),
+        "p90": percentile(0.90),
+        "p95": percentile(0.95),
+        "p99": percentile(0.99),
+    }
+
+
+def save_result(case_slug: str, output_dir: Path, result, params, contributions=None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     summary_path = output_dir / f"{case_slug}_summary.json"
     candidates_path = output_dir / f"{case_slug}_candidates.csv"
+    contributions_path = output_dir / f"{case_slug}_contributions.csv"
 
     summary = {
         "case": case_slug,
@@ -219,6 +243,8 @@ def save_result(case_slug: str, output_dir: Path, result, params) -> None:
         "r2t_output": result["r2t_output"],
         "selected": result["best"],
     }
+    if contributions is not None:
+        summary["contribution_quantiles"] = contribution_quantiles(contributions)
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     with candidates_path.open("w", newline="", encoding="utf-8") as f:
@@ -229,5 +255,14 @@ def save_result(case_slug: str, output_dir: Path, result, params) -> None:
         writer.writeheader()
         writer.writerows(result["rows"])
 
+    if contributions is not None:
+        with contributions_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["custkey", "contribution"])
+            writer.writeheader()
+            for custkey, contribution in sorted(contributions, key=lambda item: item[1], reverse=True):
+                writer.writerow({"custkey": custkey, "contribution": contribution})
+
     print(f"saved summary: {summary_path}")
     print(f"saved candidates: {candidates_path}")
+    if contributions is not None:
+        print(f"saved contributions: {contributions_path}")

@@ -6,7 +6,7 @@
     "gsq": 10000000.0,
     "seed": 1,
     "sample_rows": null,
-    "data_dir": "/home/xdl/workspace/class/ip/BDT_IP_Differential-privacy/data"
+    "data_dir": "/home/xdl/workspace/class/ip/data"
   },
   "true_total": 30276617.6762,
   "private_entities": 655,
@@ -19,5 +19,12 @@
     "truncated": 26148964.0808,
     "noise_scale": 1904926.4467322088,
     "noisy_score": 14653924.696829323
+  },
+  "contribution_quantiles": {
+    "p50": 41305.5072,
+    "p75": 61866.8574,
+    "p90": 84926.83376000001,
+    "p95": 112984.77584999995,
+    "p99": 168615.72900000046
   }
 }

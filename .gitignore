@@ -6,3 +6,5 @@ __pycache__/
 *.toc
 *.fls
 *.fdb_latexmk
+BDT_IP_Differential-privacy/
+code/generate_report_pdf.py

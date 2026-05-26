@@ -137,6 +137,7 @@ def read_candidates(name):
             {
                 "tau": float(row["tau"]),
                 "truncated": float(row["truncated"]),
+                "noise_scale": float(row["noise_scale"]),
                 "noisy_score": float(row["noisy_score"]),
             }
             for row in csv.DictReader(f)
@@ -145,6 +146,18 @@ def read_candidates(name):
 
 def read_summary(name):
     return json.loads((RESULT_DIR / f"{name}_summary.json").read_text())
+
+
+def read_contributions(name):
+    path = RESULT_DIR / f"{name}_contributions.csv"
+    with path.open(newline="") as f:
+        return [
+            {
+                "custkey": int(row["custkey"]),
+                "contribution": float(row["contribution"]),
+            }
+            for row in csv.DictReader(f)
+        ]
 
 
 def draw_candidate_chart(name, title, output):
@@ -192,6 +205,148 @@ def draw_candidate_chart(name, title, output):
     pdf.save()
 
 
+def draw_tau_tradeoff(name, title, output):
+    rows = read_candidates(name)
+    summary = read_summary(name)
+    true_total = float(summary["true_total"])
+    pdf = PdfCanvas(FIGURE_DIR / output)
+    pdf.text(190, 385, title, 16)
+
+    left, bottom, width, height = 75, 75, 580, 270
+    pdf.line(left, bottom, left, bottom + height, 1)
+    pdf.line(left, bottom, left + width, bottom, 1)
+
+    xs = [math.log2(row["tau"]) for row in rows]
+    retained = [row["truncated"] / true_total for row in rows]
+    missing = [max(0.0, (true_total - row["truncated"]) / true_total) for row in rows]
+    noise = [row["noise_scale"] / true_total for row in rows]
+    y_min, y_max = 0.0, max(1.05, max(noise), max(retained), max(missing)) * 1.08
+    x_min, x_max = min(xs), max(xs)
+
+    def tx(x):
+        return left + (x - x_min) / (x_max - x_min) * width
+
+    def ty(y):
+        return bottom + (y - y_min) / (y_max - y_min) * height
+
+    for i in range(6):
+        y = y_min + (y_max - y_min) * i / 5
+        pdf.line(left - 4, ty(y), left, ty(y), 1)
+        pdf.text(25, ty(y) - 4, f"{y:.1f}", 8)
+    for power in [1, 5, 10, 15, 20, 23]:
+        if x_min <= power <= x_max:
+            pdf.line(tx(power), bottom, tx(power), bottom - 4, 1)
+            pdf.text(tx(power) - 8, bottom - 18, str(power), 8)
+
+    pdf.polyline([(tx(x), ty(y)) for x, y in zip(xs, retained)], 2, (0.0, 0.25, 0.75))
+    pdf.polyline([(tx(x), ty(y)) for x, y in zip(xs, missing)], 2, (0.9, 0.45, 0.05))
+    pdf.polyline([(tx(x), ty(y)) for x, y in zip(xs, noise)], 2, (0.45, 0.2, 0.65))
+    selected_x = tx(math.log2(float(summary["selected"]["tau"])))
+    pdf.line(selected_x, bottom, selected_x, bottom + height, 1, (0.0, 0.55, 0.15))
+
+    legend_x = left + 385
+    pdf.text(legend_x, bottom + height + 18, "blue: retained / true", 10, (0.0, 0.25, 0.75))
+    pdf.text(legend_x, bottom + height + 3, "orange: truncation loss / true", 10, (0.9, 0.45, 0.05))
+    pdf.text(legend_x, bottom + height - 12, "purple: noise scale / true", 10, (0.45, 0.2, 0.65))
+    pdf.text(legend_x, bottom + height - 27, f"selected tau={summary['selected']['tau']:.0f}", 10, (0.0, 0.55, 0.15))
+    pdf.text(left + 230, 35, "log2(tau)", 10)
+    pdf.text(12, 355, "ratio", 10)
+    pdf.save()
+
+
+def draw_selected_output_comparison():
+    cases = [
+        ("Q3-style", read_summary("case_q3_customer_revenue")),
+        ("Q5-style", read_summary("case_q5_asia_revenue")),
+    ]
+    pdf = PdfCanvas(FIGURE_DIR / "selected_output_comparison.pdf")
+    pdf.text(185, 385, "Selected Threshold Output Comparison", 16)
+
+    left, bottom, width, height = 90, 80, 540, 270
+    pdf.line(left, bottom, left, bottom + height, 1)
+    pdf.line(left, bottom, left + width, bottom, 1)
+    series = [
+        ("true SQL total", (0.0, 0.25, 0.75), lambda s: s["true_total"] / 1_000_000),
+        ("truncated at tau*", (0.0, 0.55, 0.15), lambda s: s["selected"]["truncated"] / 1_000_000),
+        ("R2T noisy output", (0.75, 0.15, 0.1), lambda s: s["r2t_output"] / 1_000_000),
+    ]
+    y_max = max(get_value(summary) for _, summary in cases for _, _, get_value in series) * 1.15
+
+    def ty(y):
+        return bottom + y / y_max * height
+
+    for i in range(6):
+        y = y_max * i / 5
+        pdf.line(left - 4, ty(y), left, ty(y), 1)
+        pdf.text(25, ty(y) - 4, f"{y:.0f}", 8)
+
+    group_width = 210
+    bar_width = 42
+    for group_idx, (case_label, summary) in enumerate(cases):
+        group_left = left + 105 + group_idx * group_width
+        for series_idx, (_, color, get_value) in enumerate(series):
+            value = get_value(summary)
+            x = group_left + series_idx * (bar_width + 10)
+            bar_height = ty(value) - bottom
+            pdf.rect(x, bottom, bar_width, bar_height, stroke=color, fill=color, width=0.5)
+            pdf.text(x - 2, bottom + bar_height + 8, f"{value:.1f}", 8)
+        pdf.text(group_left + 20, bottom - 25, case_label, 10)
+
+    legend_x = 430
+    for i, (label, color, _) in enumerate(series):
+        y = bottom + height - i * 18
+        pdf.rect(legend_x, y, 12, 8, stroke=color, fill=color, width=0.5)
+        pdf.text(legend_x + 18, y - 1, label, 9, color)
+    pdf.text(15, 355, "million", 10)
+    pdf.save()
+
+
+def draw_contribution_concentration():
+    cases = [
+        ("Q3-style", "case_q3_customer_revenue", (0.0, 0.25, 0.75)),
+        ("Q5-style", "case_q5_asia_revenue", (0.75, 0.15, 0.1)),
+    ]
+    pdf = PdfCanvas(FIGURE_DIR / "contribution_concentration.pdf")
+    pdf.text(190, 385, "Customer Contribution Concentration", 16)
+
+    left, bottom, width, height = 75, 75, 580, 270
+    pdf.line(left, bottom, left, bottom + height, 1)
+    pdf.line(left, bottom, left + width, bottom, 1)
+
+    def tx(percent):
+        return left + percent / 100.0 * width
+
+    def ty(percent):
+        return bottom + percent / 100.0 * height
+
+    for percent in [0, 20, 40, 60, 80, 100]:
+        pdf.line(tx(percent), bottom, tx(percent), bottom - 4, 1)
+        pdf.text(tx(percent) - 8, bottom - 18, str(percent), 8)
+        pdf.line(left - 4, ty(percent), left, ty(percent), 1)
+        pdf.text(25, ty(percent) - 4, str(percent), 8)
+    pdf.line(left, bottom, left + width, bottom + height, 1, (0.65, 0.65, 0.65))
+
+    legend_y = bottom + height + 16
+    pdf.text(360, legend_y, "gray: uniform baseline", 9, (0.4, 0.4, 0.4))
+    for label, slug, color in cases:
+        values = sorted((row["contribution"] for row in read_contributions(slug)), reverse=True)
+        total = sum(values)
+        cumulative = 0.0
+        points = [(tx(0.0), ty(0.0))]
+        for i, value in enumerate(values, start=1):
+            cumulative += value
+            points.append((tx(100.0 * i / len(values)), ty(100.0 * cumulative / total)))
+        pdf.polyline(points, 2, color)
+
+        top_ten_count = max(1, math.ceil(len(values) * 0.10))
+        top_ten_share = sum(values[:top_ten_count]) / total * 100.0
+        pdf.text(360, legend_y - 16 * (1 + cases.index((label, slug, color))), f"{label}: top 10% = {top_ten_share:.1f}%", 9, color)
+
+    pdf.text(left + 180, 35, "customers sorted by contribution (%)", 10)
+    pdf.text(12, 355, "revenue share (%)", 10)
+    pdf.save()
+
+
 def main():
     draw_algorithm_flow()
     draw_schema_cases()
@@ -205,6 +360,18 @@ def main():
         "Q5-style R2T Candidate Values",
         "q5_r2t_candidates.pdf",
     )
+    draw_tau_tradeoff(
+        "case_q3_customer_revenue",
+        "Q3-style Tau Tradeoff Ratios",
+        "q3_tau_tradeoff.pdf",
+    )
+    draw_tau_tradeoff(
+        "case_q5_asia_revenue",
+        "Q5-style Tau Tradeoff Ratios",
+        "q5_tau_tradeoff.pdf",
+    )
+    draw_selected_output_comparison()
+    draw_contribution_concentration()
     print(f"figures written to {FIGURE_DIR}")
 
 

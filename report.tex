@@ -127,7 +127,7 @@ The project has four main objectives:
     \item Select two TPC-H cases that are representative but still small
     enough to implement directly.
     \item Implement the two cases as separate Python programs under a
-    \texttt{code/} directory, without copying the reference notebook.
+    \texttt{code/} directory.
     \item Save results and provide a validation path so the output can be
     checked and reproduced.
 \end{enumerate}
@@ -159,10 +159,10 @@ the same nation.
   \caption{Foreign key relationship and TPC-H relations used in the project}
 \end{figure}
 
-The local TPC-H data files are stored under
-\texttt{BDT\_IP\_Differential-privacy/data}. The public GitHub repository
-does not include the raw \texttt{.tbl} files, because they are generated
-benchmark data and are significantly larger than the implementation.
+The local TPC-H data files are stored under the project-owned
+\texttt{data/} directory. The scripts use this directory by default, while
+also allowing a custom generated TPC-H data directory through the command
+line.
 
 % =============================================================
 \chapter{Algorithm Design}
@@ -366,13 +366,13 @@ parser and no general SQL rewriting module. The files are:
     \item \texttt{code/case\_q5\_asia\_revenue.py}: the Q5-style case.
     \item \texttt{code/validate\_cases.py}: lightweight validation checks.
     \item \texttt{code/generate\_report\_figures.py}: figure generation
-    from saved CSV/JSON results.
+    from saved CSV/JSON results and saved contribution files.
 \end{itemize}
 
-The reference notebook was used only to understand the data loading
-style and the R2T loop. The submitted implementation does not copy the
-reference code and does not depend on \texttt{pandas}, \texttt{numpy}, or
-\texttt{pulp}.
+The submitted implementation keeps the SQL case construction, R2T
+threshold evaluation, validation checks, and figure generation inside
+project-owned Python scripts. The runtime path does not require
+\texttt{pandas}, \texttt{numpy}, or \texttt{pulp}.
 
 % =============================================================
 \chapter{Experiment Design and Outcome}
@@ -391,12 +391,41 @@ reference code and does not depend on \texttt{pandas}, \texttt{numpy}, or
   \caption{Experiment outcome for the Q5-style case}
 \end{figure}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1.0\textwidth]{figures/q3_tau_tradeoff.pdf}
+  \caption{Q3-style threshold tradeoff between retained answer, truncation
+  loss, and noise scale}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1.0\textwidth]{figures/q5_tau_tradeoff.pdf}
+  \caption{Q5-style threshold tradeoff between retained answer, truncation
+  loss, and noise scale}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{figures/selected_output_comparison.pdf}
+  \caption{Comparison of true SQL total, selected-threshold truncated value,
+  and final R2T noisy output}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1.0\textwidth]{figures/contribution_concentration.pdf}
+  \caption{Customer contribution concentration for the two implemented cases}
+\end{figure}
+
 The experiment runs both implemented cases on the available TPC-H scale-1
 data. For each case, the program outputs the true SQL total before
 privacy, the maximum customer contribution, the selected threshold
 $\tau$, the truncated value at that threshold, and the final R2T noisy
-output. The candidate CSV files also record every threshold evaluated by
-the R2T race.
+output. The candidate CSV files record every threshold evaluated by the
+R2T race. The contribution CSV files record each customer's pre-truncation
+revenue, which is used to plot the concentration of the private-unit
+contributions.
 
 \section{Input Design}
 
@@ -492,9 +521,10 @@ python3 code/validate_cases.py
 python3 code/generate_report_figures.py
 \end{lstlisting}
 
-Each case writes two result files. The summary file records the selected
-threshold and final output, while the candidate file records every
-threshold evaluated by R2T.
+Each case writes three result files. The summary file records the selected
+threshold and final output, the candidate file records every threshold
+evaluated by R2T, and the contribution file records each customer's
+pre-truncation revenue.
 
 \section{Experiment Results}
 
@@ -550,7 +580,7 @@ The project is intentionally limited to two concrete cases. It does not
 try to support arbitrary SQL, self-joins, or projection-heavy SPJA
 queries. However, it demonstrates the central R2T workflow clearly on
 real TPC-H data and provides a reproducible code path, saved result files,
-generated figures, and a public GitHub repository.
+and generated figures.
 
 % =============================================================
 \appendix
@@ -577,8 +607,8 @@ This was the first project meeting, so there were no minutes to approve.
 \subsection*{Background Of Project}
 We discussed the R2T paper and how to use TPC-H data for a differential
 privacy project. The initial plan was to understand the foreign-key
-privacy model, inspect the reference notebook, and decide which TPC-H
-queries could be implemented within the project scope.
+privacy model and decide which TPC-H queries could be implemented within
+the project scope.
 
 \section*{3. Meeting Adjournment and Next Meeting}
 The meeting adjourned at 4:45 pm. The next meeting was planned for March.
@@ -664,8 +694,7 @@ The minutes of the third meeting were reviewed. No changes were needed.
 \subsection*{Background Of Project}
 We discussed the experiment outcome and final report. The two R2T cases
 had been executed on the full TPC-H data. The validation script passed,
-figures were generated, and the public GitHub repository was prepared for
-submission.
+and figures were generated for submission.
 
 \section*{3. Meeting Adjournment and Next Meeting}
 The meeting adjourned at 5:00 pm. This was the last meeting.
