@@ -108,6 +108,14 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def display_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def load_tables(data_dir: Path, table_names, sample_rows=None) -> sqlite3.Connection:
     conn = sqlite3.connect(":memory:")
     for key in table_names:

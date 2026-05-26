@@ -3,6 +3,7 @@ import argparse
 from common import (
     add_common_args,
     customer_contributions,
+    display_path,
     load_tables,
     print_summary,
     r2t_from_contributions,
@@ -59,7 +60,7 @@ def main() -> None:
             "gsq": args.gsq,
             "seed": args.seed,
             "sample_rows": args.sample_rows,
-            "data_dir": str(args.data_dir),
+            "data_dir": display_path(args.data_dir),
         },
         contributions,
     )

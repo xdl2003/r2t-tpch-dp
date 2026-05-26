@@ -6,7 +6,7 @@
     "gsq": 10000000.0,
     "seed": 1,
     "sample_rows": null,
-    "data_dir": "/home/xdl/workspace/class/ip/data"
+    "data_dir": "data"
   },
   "true_total": 30276617.6762,
   "private_entities": 655,
